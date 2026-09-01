@@ -93,9 +93,33 @@
 
         .actions-panel {
             display: flex;
-            justify-content: flex-end;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
             gap: 10px;
             margin-bottom: 20px;
+        }
+
+        .actions-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .search-input {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            flex: 1;
+            min-width: 220px;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--accent);
         }
 
         .btn {
@@ -107,11 +131,22 @@
             font-weight: bold;
             cursor: pointer;
             transition: background 0.2s;
+            font-size: 0.9rem;
         }
 
         .btn:hover {
             background: var(--accent-hover);
             color: #fff;
+        }
+
+        .btn-secondary {
+            background: var(--header-bg);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
         }
 
         .saga-section {
@@ -120,6 +155,10 @@
             border-radius: 10px;
             margin-bottom: 15px;
             overflow: hidden;
+        }
+
+        .saga-section.hidden, .arc-section.hidden, .saga-content.collapsed, .arc-content.collapsed {
+            display: none;
         }
 
         .saga-header {
@@ -132,18 +171,36 @@
             user-select: none;
         }
 
+        .saga-header-left {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
         .saga-header h2 {
             margin: 0;
             font-size: 1.1rem;
             color: var(--accent);
+            transition: color 0.2s;
+        }
+
+        .saga-header h2.completed-title {
+            color: var(--success);
+        }
+
+        .saga-mini-progress {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .saga-header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
         }
 
         .saga-content {
             padding: 15px;
-        }
-
-        .saga-content.collapsed, .arc-content.collapsed {
-            display: none;
         }
 
         .arc-section {
@@ -168,6 +225,11 @@
             margin: 0;
             font-size: 0.95rem;
             color: #38bdf8;
+            transition: color 0.2s;
+        }
+
+        .arc-header h3.completed-title {
+            color: var(--success);
         }
 
         .arc-content {
@@ -195,12 +257,19 @@
         }
 
         .episode-item {
-            padding: 6px 0;
+            padding: 8px 10px;
             border-bottom: 1px solid rgba(255,255,255,0.05);
             display: flex;
             justify-content: space-between;
             align-items: center;
             font-size: 0.9rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .episode-item:hover {
+            background: rgba(255, 255, 255, 0.03);
         }
 
         .episode-item:last-child {
@@ -211,6 +280,11 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            pointer-events: none;
+        }
+
+        .episode-item input[type="checkbox"] {
+            cursor: pointer;
         }
 
         .episode-item.watched span.ep-title {
@@ -263,7 +337,14 @@
         </div>
 
         <div class="actions-panel">
-            <button class="btn" id="export-csv">Exportar CSV (UTF-8)</button>
+            <input type="text" id="search-input" class="search-input" placeholder="Buscar saga, arco ou episódio...">
+            <div class="actions-group">
+                <button class="btn btn-secondary" id="toggle-watched-btn">Ocultar Assistidos</button>
+                <button class="btn btn-secondary" id="backup-btn">Exportar JSON</button>
+                <button class="btn btn-secondary" id="restore-btn">Importar JSON</button>
+                <input type="file" id="import-file" accept=".json" style="display: none;">
+                <button class="btn" id="export-csv">Exportar CSV</button>
+            </div>
         </div>
 
         <div id="tracker-app"></div>
@@ -277,9 +358,10 @@
             const appContainer = document.getElementById("tracker-app");
             let watchedData = JSON.parse(localStorage.getItem("onePaceWatchedData")) || {};
             
-            // Controle de estado para manter o que estava aberto/fechado ao renderizar novamente
             let collapsedSagas = {};
             let collapsedArcs = {};
+            let hideWatched = false;
+            let searchQuery = "";
 
             function getEpisodeDuration(fullEpisodeTitle) {
                 const baseName = fullEpisodeTitle.split(" - ")[0].trim();
@@ -347,14 +429,51 @@
 
                 arcsData.forEach((sagaGroup, sIndex) => {
                     const sagaKey = `saga_${sIndex}`;
+                    
+                    let sagaTotal = 0;
+                    let sagaWatched = 0;
+                    if (sagaGroup.arcs) {
+                        sagaGroup.arcs.forEach(arc => {
+                            if (arc.episodes) {
+                                arc.episodes.forEach(ep => {
+                                    sagaTotal++;
+                                    if (watchedData[ep] && watchedData[ep].watched) sagaWatched++;
+                                });
+                            }
+                        });
+                    }
+                    const sagaPercent = sagaTotal > 0 ? Math.round((sagaWatched / sagaTotal) * 100) : 0;
+                    const isSagaCompleted = sagaTotal > 0 && sagaWatched === sagaTotal;
+
+                    // Se a opção "Ocultar Assistidos" estiver ativa e a saga estiver 100% assistida (e sem busca ativa), ocultamos a saga inteira
+                    if (hideWatched && isSagaCompleted && !searchQuery) {
+                        return;
+                    }
+
                     const sagaDiv = document.createElement("div");
                     sagaDiv.className = "saga-section";
 
                     const sagaHeader = document.createElement("div");
                     sagaHeader.className = "saga-header";
                     
+                    const headerLeft = document.createElement("div");
+                    headerLeft.className = "saga-header-left";
+
                     const sagaTitle = document.createElement("h2");
                     sagaTitle.textContent = sagaGroup.saga || `Saga ${sIndex + 1}`;
+                    if (isSagaCompleted) {
+                        sagaTitle.classList.add("completed-title");
+                    }
+
+                    const miniProgress = document.createElement("span");
+                    miniProgress.className = "saga-mini-progress";
+                    miniProgress.textContent = `Progresso: ${sagaPercent}% (${sagaWatched}/${sagaTotal})`;
+
+                    headerLeft.appendChild(sagaTitle);
+                    headerLeft.appendChild(miniProgress);
+
+                    const headerRight = document.createElement("div");
+                    headerRight.className = "saga-header-right";
 
                     const sagaToggleBtn = document.createElement("button");
                     sagaToggleBtn.className = "toggle-btn";
@@ -369,12 +488,25 @@
                         sagaToggleBtn.textContent = "▼ Minimizar";
                     }
 
-                    sagaHeader.appendChild(sagaTitle);
-                    sagaHeader.appendChild(sagaToggleBtn);
+                    headerRight.appendChild(sagaToggleBtn);
+                    sagaHeader.appendChild(headerLeft);
+                    sagaHeader.appendChild(headerRight);
+
+                    let hasVisibleArc = false;
 
                     if (sagaGroup.arcs && Array.isArray(sagaGroup.arcs)) {
                         sagaGroup.arcs.forEach((arc, aIndex) => {
                             const arcKey = `saga_${sIndex}_arc_${aIndex}`;
+                            
+                            let arcTotal = arc.episodes ? arc.episodes.length : 0;
+                            let arcWatchedCount = 0;
+                            if (arc.episodes) {
+                                arc.episodes.forEach(ep => {
+                                    if (watchedData[ep] && watchedData[ep].watched) arcWatchedCount++;
+                                });
+                            }
+                            const isArcCompleted = arcTotal > 0 && arcWatchedCount === arcTotal;
+
                             const arcDiv = document.createElement("div");
                             arcDiv.className = "arc-section";
 
@@ -383,6 +515,9 @@
                             
                             const arcTitle = document.createElement("h3");
                             arcTitle.textContent = arc.title || arc.name;
+                            if (isArcCompleted) {
+                                arcTitle.classList.add("completed-title");
+                            }
 
                             const arcActions = document.createElement("div");
                             arcActions.className = "arc-actions";
@@ -428,11 +563,24 @@
                             arcHeader.appendChild(arcTitle);
                             arcHeader.appendChild(arcActions);
 
+                            let hasVisibleEp = false;
+
                             if (arc.episodes && Array.isArray(arc.episodes)) {
                                 arc.episodes.forEach(ep => {
+                                    const isWatched = watchedData[ep] && watchedData[ep].watched;
+                                    
+                                    const matchesSearch = ep.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                                          arcTitle.textContent.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                                          sagaTitle.textContent.toLowerCase().includes(searchQuery.toLowerCase());
+                                    
+                                    if (!matchesSearch || (hideWatched && isWatched && !searchQuery)) {
+                                        return;
+                                    }
+
+                                    hasVisibleEp = true;
+
                                     const epDiv = document.createElement("div");
                                     epDiv.className = "episode-item";
-                                    const isWatched = watchedData[ep] && watchedData[ep].watched;
                                     if (isWatched) epDiv.classList.add("watched");
 
                                     const duration = getEpisodeDuration(ep);
@@ -444,8 +592,9 @@
                                     checkbox.type = "checkbox";
                                     checkbox.checked = isWatched;
                                     
-                                    checkbox.addEventListener("change", () => {
-                                        if (checkbox.checked) {
+                                    const toggleEpisode = () => {
+                                        const newState = !checkbox.checked;
+                                        if (newState) {
                                             const now = new Date();
                                             const formattedDate = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
                                             watchedData[ep] = { watched: true, timestamp: formattedDate };
@@ -455,6 +604,15 @@
                                         localStorage.setItem("onePaceWatchedData", JSON.stringify(watchedData));
                                         updateStats();
                                         renderApp();
+                                    };
+
+                                    checkbox.addEventListener("change", (e) => {
+                                        e.stopPropagation();
+                                        toggleEpisode();
+                                    });
+
+                                    epDiv.addEventListener("click", () => {
+                                        toggleEpisode();
                                     });
 
                                     const spanText = document.createElement("span");
@@ -481,6 +639,12 @@
                                 });
                             }
 
+                            if (!hasVisibleEp && searchQuery) {
+                                arcDiv.classList.add("hidden");
+                            } else {
+                                hasVisibleArc = true;
+                            }
+
                             arcHeader.addEventListener("click", () => {
                                 arcContent.classList.toggle("collapsed");
                                 const isCollapsed = arcContent.classList.contains("collapsed");
@@ -494,7 +658,19 @@
                         });
                     }
 
-                    sagaHeader.addEventListener("click", () => {
+                    if (!hasVisibleArc && searchQuery) {
+                        sagaDiv.classList.add("hidden");
+                    }
+
+                    sagaHeader.addEventListener("click", (e) => {
+                        if (e.target.closest('.saga-header-right') || e.target.tagName === 'BUTTON') return;
+                        sagaContent.classList.toggle("collapsed");
+                        const isCollapsed = sagaContent.classList.contains("collapsed");
+                        collapsedSagas[sagaKey] = isCollapsed;
+                        sagaToggleBtn.textContent = isCollapsed ? "▶ Expandir" : "▼ Minimizar";
+                    });
+
+                    sagaToggleBtn.addEventListener("click", () => {
                         sagaContent.classList.toggle("collapsed");
                         const isCollapsed = sagaContent.classList.contains("collapsed");
                         collapsedSagas[sagaKey] = isCollapsed;
@@ -506,6 +682,61 @@
                     appContainer.appendChild(sagaDiv);
                 });
             }
+
+            document.getElementById("search-input").addEventListener("input", (e) => {
+                searchQuery = e.target.value.trim();
+                renderApp();
+            });
+
+            const toggleWatchedBtn = document.getElementById("toggle-watched-btn");
+            toggleWatchedBtn.addEventListener("click", () => {
+                hideWatched = !hideWatched;
+                toggleWatchedBtn.textContent = hideWatched ? "Mostrar Assistidos" : "Ocultar Assistidos";
+                toggleWatchedBtn.style.borderColor = hideWatched ? "var(--accent)" : "var(--border)";
+                renderApp();
+            });
+
+            document.getElementById("backup-btn").addEventListener("click", () => {
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(watchedData, null, 2));
+                const downloadAnchor = document.createElement("a");
+                downloadAnchor.setAttribute("href", dataStr);
+                downloadAnchor.setAttribute("download", "one_pace_backup.json");
+                document.body.appendChild(downloadAnchor);
+                downloadAnchor.click();
+                downloadAnchor.remove();
+            });
+
+            const restoreBtn = document.getElementById("restore-btn");
+            const importFile = document.getElementById("import-file");
+
+            restoreBtn.addEventListener("click", () => {
+                importFile.click();
+            });
+
+            importFile.addEventListener("change", (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const parsedData = JSON.parse(e.target.result);
+                        if (typeof parsedData === "object" && parsedData !== null) {
+                            watchedData = parsedData;
+                            localStorage.setItem("onePaceWatchedData", JSON.stringify(watchedData));
+                            updateStats();
+                            renderApp();
+                            alert("Progresso importado com sucesso!");
+                        } else {
+                            alert("Arquivo JSON inválido.");
+                        }
+                    } catch (err) {
+                        alert("Erro ao ler o arquivo JSON.");
+                    }
+                    importFile.value = "";
+                };
+                reader.readAsText(file);
+            });
 
             document.getElementById("export-csv").addEventListener("click", () => {
                 let csvContent = "\uFEFFSaga,Arco,Episodio,Assistido,DataHora\n";
