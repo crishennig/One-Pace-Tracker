@@ -1,16 +1,20 @@
 {
-  "short_name": "One Pace",
-  "name": "One Pace Progress Tracker",
+  "name": "One Pace Tracker",
+  "short_name": "OnePace",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#38bdf8",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/3075/3075908.png",
-      "type": "image/png",
-      "sizes": "512x512"
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
     }
-  ],
-  "start_url": "./index.html",
-  "background_color": "#0f172a",
-  "theme_color": "#0f172a",
-  "display": "standalone",
-  "orientation": "portrait"
+  ]
 }
