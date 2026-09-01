@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>One Pace Progress Tracker</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0f172a">
+  <style>
+    :root {
+      --bg-color: #0b0f19;
+      --card-bg: #161e2e;
+      --card-hover: #1f293d;
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.2);
+      --completed: #10b981;
+      --text-main: #f8fafc;
+      --text-sub: #94a3b8;
+      --border: #243044;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      margin: 0; padding: 16px; display: flex; justify-content: center;
+    }
+    .container { width: 100%; max-width: 700px; }
+    header {
+      background: var(--card-bg); padding: 20px; border-radius: 16px;
+      margin-bottom: 24px; border: 1px solid var(--border);
+      position: sticky; top: 12px; z-index: 10; backdrop-filter: blur(8px);
+    }
+    .title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    h1 { margin: 0; color: var(--text-main); font-size: 1.4rem; font-weight: 700; }
+    .badge { background: var(--accent-glow); color: var(--accent); padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; border: 1px solid var(--accent); }
+    .progress-bar-bg { background: var(--border); height: 12px; border-radius: 6px; overflow: hidden; margin-top: 10px; }
+    .progress-bar-fill { background: linear-gradient(90deg, var(--accent), var(--completed)); height: 100%; width: 0%; transition: width 0.4s ease-out; }
+    .stats-info { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-sub); margin-top: 8px; }
+    .actions-bar { display: flex; gap: 8px; margin-top: 14px; }
+    .btn { background: var(--border); color: var(--text-main); border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600; }
+    .btn:hover { background: #334155; }
+    .btn-danger { background: #7f1d1d; color: #fca5a5; }
+    .btn-danger:hover { background: #991b1b; }
+    
+    .saga-card { background: var(--card-bg); border-radius: 14px; border: 1px solid var(--border); margin-bottom: 16px; overflow: hidden; }
+    .saga-header { background: rgba(255,255,255,0.02); padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+    .saga-title { margin: 0; font-size: 1.1rem; color: var(--accent); }
+    .saga-content { padding: 12px; }
+    .arc-block { background: rgba(0,0,0,0.15); border-radius: 8px; padding: 10px; margin-bottom: 10px; border: 1px solid var(--border); }
+    .arc-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .arc-title { font-weight: 600; font-size: 0.95rem; }
+    .btn-arc { font-size: 0.75rem; padding: 2px 6px; background: var(--border); color: var(--text-sub); }
+    
+    .episodes-grid { display: grid; grid-template-columns: 1fr; gap: 6px; }
+    .episodes-grid.collapsed { display: none; }
+    .episode-item {
+      background: var(--card-bg); border: 1px solid var(--border); padding: 8px 10px;
+      border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 10px;
+      transition: background 0.2s;
+    }
+    .episode-item.completed { border-color: var(--completed); background: rgba(16, 185, 129, 0.08); }
+    .episode-item input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--completed); cursor: pointer; }
+    .episode-title { font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <div class="title-row">
+        <h1>One Pace Tracker</h1>
+        <span class="badge">PWA App</span>
+      </div>
+      <div class="progress-container">
+        <div class="progress-bar-bg">
+          <div id="progress-fill" class="progress-bar-fill"></div>
+        </div>
+        <div class="stats-info">
+          <span id="completed-count">0 / 0 episódios (0%)</span>
+          <div class="actions-bar">
+            <button id="export-btn" class="btn">Exportar CSV</button>
+            <button id="reset-btn" class="btn btn-danger">Resetar</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main id="app-content"></main>
+  </div>
+
+  <script src="onePaceData.js"></script>
+  <script>
+    const STORAGE_KEY = 'one_pace_tracker_progress';
+    let userProgress = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+
+    function saveProgress() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(userProgress));
+    }
+
+    function renderApp() {
+      const container = document.getElementById('app-content');
+      if (!container) return;
+      container.innerHTML = '';
+
+      let total = 0, completed = 0;
+
+      if (typeof onePaceData === 'undefined') {
+        container.innerHTML = '<p style="text-align:center; color:#ef4444;">Erro: Arquivo onePaceData.js não carregado!</p>';
+        return;
+      }
+
+      onePaceData.forEach((saga, sIdx) => {
+        const sCard = document.createElement('div');
+        sCard.className = 'saga-card';
+
+        const sHeader = document.createElement('div');
+        sHeader.className = 'saga-header';
+        sHeader.innerHTML = `<h2 class="saga-title">${saga.saga}</h2><span>▼</span>`;
+        
+        const sContent = document.createElement('div');
+        sContent.className = 'saga-content';
+
+        saga.arcs.forEach((arc, aIdx) => {
+          const aBlock = document.createElement('div');
+          aBlock.className = 'arc-block';
+
+          const aHeader = document.createElement('div');
+          aHeader.className = 'arc-header';
+          aHeader.innerHTML = `<span class="arc-title">${arc.name} (${arc.episodes.length})</span>`;
+          
+          const markArcBtn = document.createElement('button');
+          markArcBtn.className = 'btn btn-arc';
+          markArcBtn.textContent = 'Marcar Arco';
+          aHeader.appendChild(markArcBtn);
+
+          const grid = document.createElement('div');
+          grid.className = 'episodes-grid';
+
+          let arcComp = 0;
+          arc.episodes.forEach((epTitle, eIdx) => {
+            total++;
+            const key = `${sIdx}-${aIdx}-${eIdx}`;
+            const isDone = userProgress[key] || false;
+            if (isDone) {
+              completed++;
+              arcComp++;
+            }
+
+            const item = document.createElement('div');
+            item.className = `episode-item ${isDone ? 'completed' : ''}`;
+            
+            const chk = document.createElement('input');
+            chk.type = 'checkbox';
+            chk.checked = isDone;
+
+            const title = document.createElement('span');
+            title.className = 'episode-title';
+            title.textContent = epTitle;
+
+            item.appendChild(chk);
+            item.appendChild(title);
+
+            item.addEventListener('click', (e) => {
+              if (e.target !== chk) chk.checked = !chk.checked;
+              userProgress[key] = chk.checked;
+              saveProgress();
+              renderApp();
+            });
+
+            grid.appendChild(item);
+          });
+
+          aHeader.addEventListener('click', (e) => {
+            if (e.target === markArcBtn) return;
+            grid.classList.toggle('collapsed');
+          });
+
+          markArcBtn.addEventListener('click', () => {
+            const shouldMark = arcComp < arc.episodes.length;
+            arc.episodes.forEach((_, eIdx) => {
+              userProgress[`{sIdx}-${aIdx}-${eIdx}`] = shouldMark; // Corrigido dinâmico abaixo
+            });
+            // correção rápida do key loop
+            arc.episodes.forEach((_, eIdx) => {
+              userProgress[`${sIdx}-${aIdx}-${eIdx}`] = shouldMark;
+            });
+            saveProgress();
+            renderApp();
+          });
+
+          aBlock.appendChild(aHeader);
+          aBlock.appendChild(grid);
+          sContent.appendChild(aBlock);
+        });
+
+        sHeader.addEventListener('click', () => {
+          sContent.style.display = sContent.style.display === 'none' ? 'block' : 'none';
+        });
+
+        sCard.appendChild(sHeader);
+        sCard.appendChild(sContent);
+        container.appendChild(sCard);
+      });
+
+      const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+      document.getElementById('completed-count').textContent = `${completed} / ${total} episódios (${pct}%)`;
+      document.getElementById('progress-fill').style.width = `${pct}%`;
+    }
+
+    document.getElementById('reset-btn').addEventListener('click', () => {
+      if (confirm('Deseja zerar todo o progresso?')) {
+        userProgress = {};
+        saveProgress();
+        renderApp();
+      }
+    });
+
+    document.getElementById('export-btn').addEventListener('click', () => {
+      let csv = "Saga,Arco,Episodio,Status\n";
+      onePaceData.forEach((saga, sIdx) => {
+        saga.arcs.forEach((arc, aIdx) => {
+          arc.episodes.forEach((ep, eIdx) => {
+            const status = userProgress[`${sIdx}-${aIdx}-${eIdx}`] ? "Concluído" : "Pendente";
+            csv += `"${saga.saga}","${arc.name}","${ep.replace(/,/g, "-")}","${status}"\n`;
+          });
+        });
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "one_pace_progresso.csv";
+      link.click();
+    });
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js');
+    }
+
+    renderApp();
+  </script>
+</body>
+</html>
