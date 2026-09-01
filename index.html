@@ -3,424 +3,541 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>One Pace Progress Tracker</title>
-    <!-- Ícone para a aba do navegador (Favicon) -->
-    <link rel="icon" type="image/png" href="favicon.png">
-
-    <!-- Ícones para dispositivos móveis / PWA -->
-    <link rel="apple-touch-icon" href="icon-192.png">
-    <link rel="manifest" href="manifest.json">
+    <title>One Pace Tracker</title>
     <style>
         :root {
             --bg-color: #0f172a;
             --card-bg: #1e293b;
-            --text-color: #f8fafc;
+            --header-bg: #334155;
+            --accent: #f59e0b;
+            --accent-hover: #d97706;
+            --text-main: #f8fafc;
             --text-muted: #94a3b8;
-            --accent: #38bdf8;
-            --accent-hover: #0ea5e9;
             --border: #334155;
-            --success: #22c55e;
-            --success-bg: rgba(34, 197, 94, 0.1);
+            --success: #10b981;
+            --danger: #ef4444;
         }
 
         body {
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
             margin: 0;
             padding: 20px;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
         }
 
         .container {
-            width: 100%;
             max-width: 900px;
+            margin: 0 auto;
         }
 
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: var(--card-bg);
-            padding: 20px 24px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
-            margin-bottom: 24px;
-            border: 1px solid var(--border);
-        }
-
-        header h1 {
-            margin: 0;
-            font-size: 1.5rem;
+        h1 {
+            text-align: center;
             color: var(--accent);
-            letter-spacing: 0.5px;
+            margin-bottom: 25px;
         }
 
-        button {
-            background-color: var(--accent);
-            color: #0f172a;
+        .stats-panel {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .stat-box {
+            background: var(--bg-color);
+            padding: 12px 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .stat-box small {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            display: block;
+        }
+
+        .stat-box span {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--accent);
+            margin-top: 4px;
+            display: block;
+        }
+
+        .progress-bar-container {
+            background: var(--bg-color);
+            border-radius: 8px;
+            height: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            margin-top: 10px;
+        }
+
+        .progress-bar {
+            background: var(--success);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .actions-panel {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            background: var(--accent);
+            color: #000;
             border: none;
             padding: 10px 16px;
-            border-radius: 8px;
+            border-radius: 6px;
+            font-weight: bold;
             cursor: pointer;
-            font-weight: 600;
-            transition: background-color 0.2s, transform 0.1s;
+            transition: background 0.2s;
         }
 
-        button:hover {
-            background-color: var(--accent-hover);
+        .btn:hover {
+            background: var(--accent-hover);
+            color: #fff;
         }
 
-        button:active {
-            transform: scale(0.98);
-        }
-
-        .saga {
+        .saga-section {
             background: var(--card-bg);
-            padding: 20px;
-            margin-bottom: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
             border: 1px solid var(--border);
-        }
-
-        .saga h2 {
-            margin-top: 0;
-            font-size: 1.25rem;
-            border-bottom: 2px solid var(--border);
-            padding-bottom: 10px;
-            color: var(--text-color);
-        }
-
-        .arc-wrapper {
-            margin-top: 12px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
+            border-radius: 10px;
+            margin-bottom: 15px;
             overflow: hidden;
-            background: rgba(15, 23, 42, 0.4);
         }
 
-        .arc-header {
+        .saga-header {
+            background: var(--header-bg);
+            padding: 14px 18px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             cursor: pointer;
-            background: rgba(30, 41, 59, 0.8);
-            padding: 12px 16px;
-            transition: background 0.2s;
             user-select: none;
         }
 
-        .arc-header:hover {
-            background: rgba(51, 65, 85, 0.8);
+        .saga-header h2 {
+            margin: 0;
+            font-size: 1.1rem;
+            color: var(--accent);
         }
 
-        .arc-title-area {
+        .saga-content {
+            padding: 15px;
+        }
+
+        .saga-content.collapsed, .arc-content.collapsed {
+            display: none;
+        }
+
+        .arc-section {
+            background: var(--bg-color);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+
+        .arc-header {
+            background: #1a2234;
+            padding: 10px 15px;
             display: flex;
-            flex-direction: column;
-            gap: 4px;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
         }
 
-        .arc-title {
-            font-weight: 600;
+        .arc-header h3 {
+            margin: 0;
             font-size: 0.95rem;
+            color: #38bdf8;
         }
 
-        .arc-progress-text {
-            font-size: 0.75rem;
-            color: var(--text-muted);
+        .arc-content {
+            padding: 12px 15px;
         }
 
         .arc-actions {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
         }
 
-        .btn-mark-arc {
-            background-color: transparent;
-            color: var(--accent);
-            border: 1px solid var(--accent);
-            padding: 5px 10px;
-            font-size: 0.8rem;
-            border-radius: 6px;
+        .btn-small {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            border-radius: 4px;
+            cursor: pointer;
         }
 
-        .btn-mark-arc:hover {
-            background-color: var(--accent);
-            color: #0f172a;
+        .btn-small:hover {
+            background: var(--border);
         }
 
-        .arc-content {
-            display: none;
-            padding: 12px 16px;
-            border-top: 1px solid var(--border);
-        }
-
-        .arc-content.active {
-            display: block;
-        }
-
-        ul {
-            list-style-type: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        li {
-            margin: 8px 0;
+        .episode-item {
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
             display: flex;
-            align-items: center;
             justify-content: space-between;
-            background: var(--card-bg);
-            padding: 10px 12px;
-            border-radius: 6px;
-            border: 1px solid rgba(51, 65, 85, 0.5);
-            transition: border-color 0.2s, background-color 0.2s;
-        }
-
-        li.completed {
-            background-color: var(--success-bg);
-            border-color: rgba(34, 197, 94, 0.3);
-        }
-
-        .ep-info {
-            display: flex;
             align-items: center;
-            gap: 12px;
-            cursor: pointer;
-        }
-
-        .ep-info input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            accent-color: var(--success);
-            cursor: pointer;
-        }
-
-        .ep-info span {
             font-size: 0.9rem;
         }
 
-        li.completed .ep-info span {
-            color: var(--text-muted);
+        .episode-item:last-child {
+            border-bottom: none;
+        }
+
+        .episode-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .episode-item.watched span.ep-title {
             text-decoration: line-through;
+            color: var(--text-muted);
         }
 
         .timestamp {
             font-size: 0.75rem;
-            color: var(--text-muted);
-            background: rgba(15, 23, 42, 0.6);
-            padding: 3px 8px;
-            border-radius: 4px;
+            color: var(--success);
+            margin-left: 8px;
         }
 
-        @media (max-width: 600px) {
-            header {
-                flex-direction: column;
-                gap: 12px;
-                text-align: center;
-            }
-            .arc-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 10px;
-            }
-            .arc-actions {
-                width: 100%;
-                justify-content: space-between;
-            }
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: var(--text-main);
+            font-size: 0.9rem;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <header>
-            <h1>One Pace Progress Tracker</h1>
-            <button id="export-btn">Exportar CSV</button>
-        </header>
+        <h1>One Pace Tracker</h1>
 
-        <div id="app"></div>
+        <div class="stats-panel">
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <small>Tempo Total</small>
+                    <span id="total-time">00:00:00</span>
+                </div>
+                <div class="stat-box">
+                    <small>Assistido</small>
+                    <span id="watched-time" style="color: var(--success);">00:00:00</span>
+                </div>
+                <div class="stat-box">
+                    <small>Restante</small>
+                    <span id="remaining-time" style="color: var(--danger);">00:00:00</span>
+                </div>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted);">
+                <span>Progresso Geral</span>
+                <span id="progress-percentage">0%</span>
+            </div>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+        </div>
+
+        <div class="actions-panel">
+            <button class="btn" id="export-csv">Exportar CSV (UTF-8)</button>
+        </div>
+
+        <div id="tracker-app"></div>
     </div>
 
-    <!-- Script de Dados -->
     <script src="data.js"></script>
+    <script src="durations.js"></script>
 
-    <!-- Script de Lógica e Funcionalidades -->
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const container = document.getElementById('app');
-            const exportBtn = document.getElementById('export-btn');
+        document.addEventListener("DOMContentLoaded", () => {
+            const appContainer = document.getElementById("tracker-app");
+            let watchedData = JSON.parse(localStorage.getItem("onePaceWatchedData")) || {};
+            
+            // Controle de estado para manter o que estava aberto/fechado ao renderizar novamente
+            let collapsedSagas = {};
+            let collapsedArcs = {};
 
-            if (typeof data === 'undefined' || !Array.isArray(data)) {
-                container.innerHTML = '<p style="color: #ef4444; font-weight: bold; text-align: center;">Erro: O arquivo data.js não foi carregado corretamente.</p>';
-                return;
+            function getEpisodeDuration(fullEpisodeTitle) {
+                const baseName = fullEpisodeTitle.split(" - ")[0].trim();
+                return episodeDurations[baseName] || "00:24:00";
             }
 
-            let progress = JSON.parse(localStorage.getItem('onePaceProgress')) || {};
+            function timeToSeconds(timeStr) {
+                const parts = timeStr.split(":").map(Number);
+                if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+                if (parts.length === 2) return parts[0] * 60 + parts[1];
+                return 0;
+            }
 
-            function saveProgress() {
-                localStorage.setItem('onePaceProgress', JSON.stringify(progress));
+            function secondsToTime(totalSeconds) {
+                const hrs = Math.floor(totalSeconds / 3600);
+                const mins = Math.floor((totalSeconds % 3600) / 60);
+                const secs = totalSeconds % 60;
+                return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            }
+
+            function updateStats() {
+                let totalSec = 0;
+                let watchedSec = 0;
+                let totalEpCount = 0;
+                let watchedEpCount = 0;
+
+                if (typeof arcsData === 'undefined') return;
+
+                arcsData.forEach(saga => {
+                    if (saga.arcs) {
+                        saga.arcs.forEach(arc => {
+                            if (arc.episodes) {
+                                arc.episodes.forEach(ep => {
+                                    totalEpCount++;
+                                    const durationStr = getEpisodeDuration(ep);
+                                    const sec = timeToSeconds(durationStr);
+                                    totalSec += sec;
+                                    if (watchedData[ep] && watchedData[ep].watched) {
+                                        watchedSec += sec;
+                                        watchedEpCount++;
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+
+                const remainingSec = totalSec - watchedSec;
+                const percent = totalEpCount > 0 ? Math.round((watchedEpCount / totalEpCount) * 100) : 0;
+
+                document.getElementById("total-time").textContent = secondsToTime(totalSec);
+                document.getElementById("watched-time").textContent = secondsToTime(watchedSec);
+                document.getElementById("remaining-time").textContent = secondsToTime(remainingSec);
+                document.getElementById("progress-percentage").textContent = `${percent}% (${watchedEpCount}/${totalEpCount} eps)`;
+                document.getElementById("progress-bar").style.width = `${percent}%`;
             }
 
             function renderApp() {
-                container.innerHTML = '';
+                appContainer.innerHTML = "";
 
-                data.forEach((sagaItem) => {
-                    const sagaDiv = document.createElement('div');
-                    sagaDiv.className = 'saga';
+                if (typeof arcsData === 'undefined') {
+                    appContainer.innerHTML = "<p style='color: var(--danger); text-align:center;'>Erro: O arquivo data.js não foi carregado corretamente.</p>";
+                    return;
+                }
+
+                arcsData.forEach((sagaGroup, sIndex) => {
+                    const sagaKey = `saga_${sIndex}`;
+                    const sagaDiv = document.createElement("div");
+                    sagaDiv.className = "saga-section";
+
+                    const sagaHeader = document.createElement("div");
+                    sagaHeader.className = "saga-header";
                     
-                    const sagaTitle = document.createElement('h2');
-                    sagaTitle.textContent = sagaItem.saga;
-                    sagaDiv.appendChild(sagaTitle);
+                    const sagaTitle = document.createElement("h2");
+                    sagaTitle.textContent = sagaGroup.saga || `Saga ${sIndex + 1}`;
 
-                    sagaItem.arcs.forEach((arcItem) => {
-                        const arcWrapper = document.createElement('div');
-                        arcWrapper.className = 'arc-wrapper';
-                        
-                        const arcHeader = document.createElement('div');
-                        arcHeader.className = 'arc-header';
-                        
-                        // Conta quantos episódios do arco estão concluídos
-                        const completedCount = arcItem.episodes.filter(ep => progress[ep]?.completed).length;
-                        
-                        const titleArea = document.createElement('div');
-                        titleArea.className = 'arc-title-area';
-                        
-                        const arcTitleSpan = document.createElement('span');
-                        arcTitleSpan.className = 'arc-title';
-                        arcTitleSpan.textContent = arcItem.name;
-                        
-                        const progressText = document.createElement('span');
-                        progressText.className = 'arc-progress-text';
-                        progressText.textContent = `${completedCount} / ${arcItem.total_episodes} episódios concluídos`;
-                        
-                        titleArea.appendChild(arcTitleSpan);
-                        titleArea.appendChild(progressText);
+                    const sagaToggleBtn = document.createElement("button");
+                    sagaToggleBtn.className = "toggle-btn";
+                    
+                    const sagaContent = document.createElement("div");
+                    sagaContent.className = "saga-content";
 
-                        const arcActions = document.createElement('div');
-                        arcActions.className = 'arc-actions';
+                    if (collapsedSagas[sagaKey]) {
+                        sagaContent.classList.add("collapsed");
+                        sagaToggleBtn.textContent = "▶ Expandir";
+                    } else {
+                        sagaToggleBtn.textContent = "▼ Minimizar";
+                    }
 
-                        const markArcBtn = document.createElement('button');
-                        markArcBtn.className = 'btn-mark-arc';
-                        markArcBtn.textContent = completedCount === arcItem.total_episodes ? 'Desmarcar Arco' : 'Marcar Arco';
-                        markArcBtn.type = 'button';
+                    sagaHeader.appendChild(sagaTitle);
+                    sagaHeader.appendChild(sagaToggleBtn);
 
-                        // Bulk "Mark Arc"
-                        markArcBtn.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            const allChecked = completedCount === arcItem.total_episodes;
+                    if (sagaGroup.arcs && Array.isArray(sagaGroup.arcs)) {
+                        sagaGroup.arcs.forEach((arc, aIndex) => {
+                            const arcKey = `saga_${sIndex}_arc_${aIndex}`;
+                            const arcDiv = document.createElement("div");
+                            arcDiv.className = "arc-section";
+
+                            const arcHeader = document.createElement("div");
+                            arcHeader.className = "arc-header";
                             
-                            arcItem.episodes.forEach(ep => {
-                                if (!progress[ep]) progress[ep] = {};
-                                progress[ep].completed = !allChecked;
-                                delete progress[ep].timestamp; // Mantém a regra de bulk actions sem timestamp
-                            });
+                            const arcTitle = document.createElement("h3");
+                            arcTitle.textContent = arc.title || arc.name;
 
-                            saveProgress();
-                            renderApp();
-                        });
+                            const arcActions = document.createElement("div");
+                            arcActions.className = "arc-actions";
 
-                        arcActions.appendChild(markArcBtn);
-                        arcHeader.appendChild(titleArea);
-                        arcHeader.appendChild(arcActions);
+                            const checkAllBtn = document.createElement("button");
+                            checkAllBtn.className = "btn-small";
+                            checkAllBtn.textContent = "Marcar Arco";
+                            checkAllBtn.title = "Marca todos os episódios do arco sem data/hora";
 
-                        const arcContent = document.createElement('div');
-                        arcContent.className = 'arc-content';
-
-                        // Toggle colapso do arco
-                        arcHeader.addEventListener('click', () => {
-                            arcContent.classList.toggle('active');
-                        });
-
-                        const ul = document.createElement('ul');
-                        arcItem.episodes.forEach(epName => {
-                            const isCompleted = progress[epName]?.completed || false;
-                            const li = document.createElement('li');
-                            if (isCompleted) li.classList.add('completed');
-                            
-                            const epInfo = document.createElement('label');
-                            epInfo.className = 'ep-info';
-
-                            const checkbox = document.createElement('input');
-                            checkbox.type = 'checkbox';
-                            checkbox.checked = isCompleted;
-
-                            checkbox.addEventListener('change', () => {
-                                if (!progress[epName]) progress[epName] = {};
-                                progress[epName].completed = checkbox.checked;
+                            checkAllBtn.addEventListener("click", (e) => {
+                                e.stopPropagation();
+                                const allWatched = arc.episodes.every(ep => watchedData[ep] && watchedData[ep].watched);
                                 
-                                if (checkbox.checked) {
-                                    const now = new Date();
-                                    progress[epName].timestamp = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
-                                } else {
-                                    delete progress[epName].timestamp;
-                                }
+                                arc.episodes.forEach(ep => {
+                                    if (!allWatched) {
+                                        watchedData[ep] = { watched: true, timestamp: null };
+                                    } else {
+                                        delete watchedData[ep];
+                                    }
+                                });
 
-                                saveProgress();
+                                localStorage.setItem("onePaceWatchedData", JSON.stringify(watchedData));
+                                updateStats();
                                 renderApp();
                             });
 
-                            const label = document.createElement('span');
-                            label.textContent = epName;
+                            const arcToggleBtn = document.createElement("button");
+                            arcToggleBtn.className = "toggle-btn";
 
-                            epInfo.appendChild(checkbox);
-                            epInfo.appendChild(label);
+                            const arcContent = document.createElement("div");
+                            arcContent.className = "arc-content";
 
-                            const timeSpan = document.createElement('span');
-                            timeSpan.className = 'timestamp';
-                            timeSpan.textContent = progress[epName]?.timestamp || '';
+                            if (collapsedArcs[arcKey]) {
+                                arcContent.classList.add("collapsed");
+                                arcToggleBtn.textContent = "▶";
+                            } else {
+                                arcToggleBtn.textContent = "▼";
+                            }
 
-                            li.appendChild(epInfo);
-                            li.appendChild(timeSpan);
-                            ul.appendChild(li);
+                            arcActions.appendChild(checkAllBtn);
+                            arcActions.appendChild(arcToggleBtn);
+
+                            arcHeader.appendChild(arcTitle);
+                            arcHeader.appendChild(arcActions);
+
+                            if (arc.episodes && Array.isArray(arc.episodes)) {
+                                arc.episodes.forEach(ep => {
+                                    const epDiv = document.createElement("div");
+                                    epDiv.className = "episode-item";
+                                    const isWatched = watchedData[ep] && watchedData[ep].watched;
+                                    if (isWatched) epDiv.classList.add("watched");
+
+                                    const duration = getEpisodeDuration(ep);
+
+                                    const label = document.createElement("label");
+                                    label.className = "episode-info";
+                                    
+                                    const checkbox = document.createElement("input");
+                                    checkbox.type = "checkbox";
+                                    checkbox.checked = isWatched;
+                                    
+                                    checkbox.addEventListener("change", () => {
+                                        if (checkbox.checked) {
+                                            const now = new Date();
+                                            const formattedDate = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+                                            watchedData[ep] = { watched: true, timestamp: formattedDate };
+                                        } else {
+                                            delete watchedData[ep];
+                                        }
+                                        localStorage.setItem("onePaceWatchedData", JSON.stringify(watchedData));
+                                        updateStats();
+                                        renderApp();
+                                    });
+
+                                    const spanText = document.createElement("span");
+                                    spanText.className = "ep-title";
+                                    spanText.textContent = ep;
+
+                                    if (isWatched && watchedData[ep].timestamp) {
+                                        const tsSpan = document.createElement("span");
+                                        tsSpan.className = "timestamp";
+                                        tsSpan.textContent = `(${watchedData[ep].timestamp})`;
+                                        spanText.appendChild(tsSpan);
+                                    }
+
+                                    label.appendChild(checkbox);
+                                    label.appendChild(spanText);
+
+                                    const smallDuration = document.createElement("small");
+                                    smallDuration.style.color = "var(--text-muted)";
+                                    smallDuration.textContent = duration;
+
+                                    epDiv.appendChild(label);
+                                    epDiv.appendChild(smallDuration);
+                                    arcContent.appendChild(epDiv);
+                                });
+                            }
+
+                            arcHeader.addEventListener("click", () => {
+                                arcContent.classList.toggle("collapsed");
+                                const isCollapsed = arcContent.classList.contains("collapsed");
+                                collapsedArcs[arcKey] = isCollapsed;
+                                arcToggleBtn.textContent = isCollapsed ? "▶" : "▼";
+                            });
+
+                            arcDiv.appendChild(arcHeader);
+                            arcDiv.appendChild(arcContent);
+                            sagaContent.appendChild(arcDiv);
                         });
+                    }
 
-                        arcContent.appendChild(ul);
-                        arcWrapper.appendChild(arcHeader);
-                        arcWrapper.appendChild(arcContent);
-                        sagaDiv.appendChild(arcWrapper);
+                    sagaHeader.addEventListener("click", () => {
+                        sagaContent.classList.toggle("collapsed");
+                        const isCollapsed = sagaContent.classList.contains("collapsed");
+                        collapsedSagas[sagaKey] = isCollapsed;
+                        sagaToggleBtn.textContent = isCollapsed ? "▶ Expandir" : "▼ Minimizar";
                     });
 
-                    container.appendChild(sagaDiv);
+                    sagaDiv.appendChild(sagaHeader);
+                    sagaDiv.appendChild(sagaContent);
+                    appContainer.appendChild(sagaDiv);
                 });
             }
 
-            exportBtn.addEventListener('click', () => {
-                let csvContent = "data:text/csv;charset=utf-8,Episodio,Status,Data/Hora\n";
-                
-                data.forEach(saga => {
-                    saga.arcs.forEach(arc => {
-                        arc.episodes.forEach(ep => {
-                            const completed = progress[ep]?.completed ? 'Concluído' : 'Pendente';
-                            const timestamp = progress[ep]?.timestamp || '';
-                            csvContent += `"${ep}","${completed}","${timestamp}"\n`;
+            document.getElementById("export-csv").addEventListener("click", () => {
+                let csvContent = "\uFEFFSaga,Arco,Episodio,Assistido,DataHora\n";
+
+                arcsData.forEach(saga => {
+                    if (saga.arcs) {
+                        saga.arcs.forEach(arc => {
+                            if (arc.episodes) {
+                                arc.episodes.forEach(ep => {
+                                    const record = watchedData[ep];
+                                    const watchedStatus = record && record.watched ? "Sim" : "Nao";
+                                    const timestamp = record && record.timestamp ? record.timestamp : "";
+                                    csvContent += `"${saga.saga}","${arc.title || arc.name}","${ep}","${watchedStatus}","${timestamp}"\n`;
+                                });
+                            }
                         });
-                    });
+                    }
                 });
 
-                const encodedUri = encodeURI(csvContent);
-                const link = document.createElement('a');
-                link.setAttribute('href', encodedUri);
-                link.setAttribute('download', 'one_pace_progresso.csv');
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+                const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "one_pace_progresso.csv";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
             });
 
+            updateStats();
             renderApp();
         });
-
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('Service Worker registrado!', reg))
-                    .catch(err => console.log('Erro no Service Worker:', err));
-            });
-        }
     </script>
 </body>
 </html>
