@@ -1,4 +1,4 @@
-const data = [
+const arcsData = [
   {
     "saga": "Saga 1: East Blue",
     "arcs": [
