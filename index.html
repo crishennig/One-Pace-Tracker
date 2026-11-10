@@ -357,6 +357,62 @@
         document.addEventListener("DOMContentLoaded", () => {
             const appContainer = document.getElementById("tracker-app");
             let watchedData = JSON.parse(localStorage.getItem("onePaceWatchedData")) || {};
+
+            // --- Migração do progresso salvo com os títulos antigos (lista anterior a nov/2026) ---
+            // O progresso é salvo pelo título completo do episódio. Como os títulos e a quantidade de
+            // episódios por arco foram corrigidos, convertemos o progresso antigo para a lista nova.
+            const LEGACY_ARC_TOTALS = {"Romance Dawn":4,"Orange Town":5,"Syrup Village":9,"Gaimon":1,"Baratie":12,"Arlong Park":14,"The Adventures of Buggy's Crew":2,"Loguetown":6,"Reverse Mountain":4,"Whisky Peak":4,"The Trials of Koby-Meppo":2,"Little Garden":9,"Drum Island":14,"Arabasta":32,"Jaya":9,"Skypiea":29,"Long Ring Long Land":6,"Water 7":14,"Enies Lobby":30,"Post-Enies Lobby":4,"Thriller Bark":20,"Sabaody Archipelago":13,"Amazon Lily":6,"Impel Down":16,"Marineford":18,"Post-War":8,"Return to Sabaody":3,"Fishman Island":26,"Punk Hazard":22,"Dressrosa":48,"Zou":6,"Whole Cake Island":30,"Levely":2,"Wano Country":55};
+            const LEGACY_ARC_RENAMES = {"Arabasta":"Alabasta","Water 7":"Water Seven","Levely":"Reverie","Wano Country":"Wano"};
+
+            function migrateWatchedData(data) {
+                if (typeof arcsData === 'undefined' || !data) return data;
+                const newArcs = {};
+                arcsData.forEach(s => (s.arcs || []).forEach(a => { newArcs[a.name] = a.episodes; }));
+                const known = new Set(Object.values(newArcs).flat());
+                const keys = Object.keys(data);
+                // Só migra se houver alguma chave que não existe na lista atual (formato antigo)
+                if (!keys.some(k => !known.has(k))) return data;
+
+                const byArc = {};
+                keys.forEach(k => {
+                    if (!data[k] || !data[k].watched) return;
+                    const m = k.split(" - ")[0].trim().match(/^(.*) (\d+)$/);
+                    if (!m || !(m[1] in LEGACY_ARC_TOTALS)) return;
+                    (byArc[m[1]] = byArc[m[1]] || {})[parseInt(m[2], 10)] = data[k];
+                });
+
+                const result = {};
+                Object.entries(byArc).forEach(([oldName, watched]) => {
+                    const eps = newArcs[LEGACY_ARC_RENAMES[oldName] || oldName];
+                    if (!eps) return;
+                    const oldTotal = LEGACY_ARC_TOTALS[oldName];
+                    const nums = Object.keys(watched).map(Number);
+                    const latest = nums.map(n => watched[n]).filter(r => r.timestamp).map(r => r.timestamp).pop() || null;
+
+                    if (oldTotal === eps.length) {
+                        // Mesma quantidade: mapeia episódio a episódio
+                        nums.forEach(n => { if (eps[n - 1]) result[eps[n - 1]] = watched[n]; });
+                    } else {
+                        // Quantidade diferente: assume que foi assistido em ordem e converte proporcionalmente
+                        const allWatched = nums.length >= oldTotal;
+                        const upTo = allWatched ? eps.length : Math.round(Math.max(...nums) * eps.length / oldTotal);
+                        for (let i = 1; i <= upTo; i++) {
+                            const src = watched[Math.ceil(i * oldTotal / eps.length)];
+                            result[eps[i - 1]] = { watched: true, timestamp: (src && src.timestamp) || latest };
+                        }
+                    }
+                });
+                // Mantém o que já estava no formato novo
+                keys.forEach(k => { if (known.has(k) && !(k in result)) result[k] = data[k]; });
+                return result;
+            }
+
+            const migratedData = migrateWatchedData(watchedData);
+            if (migratedData !== watchedData) {
+                localStorage.setItem("onePaceWatchedData_backup_antigo", JSON.stringify(watchedData));
+                watchedData = migratedData;
+                localStorage.setItem("onePaceWatchedData", JSON.stringify(watchedData));
+            }
             
             let collapsedSagas = {};
             let collapsedArcs = {};
@@ -722,7 +778,7 @@
                     try {
                         const parsedData = JSON.parse(e.target.result);
                         if (typeof parsedData === "object" && parsedData !== null) {
-                            watchedData = parsedData;
+                            watchedData = migrateWatchedData(parsedData);
                             localStorage.setItem("onePaceWatchedData", JSON.stringify(watchedData));
                             updateStats();
                             renderApp();
